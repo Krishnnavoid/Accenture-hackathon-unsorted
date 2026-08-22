@@ -1,0 +1,30 @@
+{
+  "dataset_metadata": {
+    "source_id": "CRM_MARKETING_MONTHLY",
+    "last_sync": "2026-08-01T00:00:00Z",
+    "freshness_status": "MODERATE_LAG (Campaign Mid-Cycle)",
+    "cadence_days": 30
+  },
+  "campaigns": [
+    {
+      "campaign_id": "CMP-SUMMER-BLAST-26",
+      "channel": "Paid Search & Meta Ads",
+      "budget_allocated": 140000,
+      "spend_to_date": 92000,
+      "blended_cac": 58.40,
+      "target_cac": 48.00,
+      "cpc_bid_inflation_pct": 24.5,
+      "key_insight": "Summer discount keywords triggering high traffic with 25% promo code, driving unit volume at compressed margins."
+    },
+    {
+      "campaign_id": "CMP-ECO-LAUNCH-26",
+      "channel": "Influencer & Green Tech PR",
+      "budget_allocated": 35000,
+      "spend_to_date": 12000,
+      "blended_cac": 38.20,
+      "target_cac": 48.00,
+      "status": "EARLY_STAGE",
+      "sample_size": 240
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "dataset_metadata": {
+    "source_id": "ERP_SUPPLY_WEEKLY",
+    "last_sync": "2026-08-19T06:00:00Z",
+    "freshness_status": "FRESH",
+    "batch_cycle": "WEEK_33_2026"
+  },
+  "logistics_and_cogs": {
+    "global_freight_index": {
+      "baseline_index": 100.0,
+      "current_index": 142.4,
+      "primary_driver": "Red Sea Shipping Route Re-routing (+18 days transit, +$1,850/TEU surcharge)",
+      "margin_drag_bps": -170
+    },
+    "regional_distribution_centers": [
+      {
+        "dc_id": "DC-WEST-OAKLAND",
+        "inbound_lead_time_days": 28,
+        "historical_avg_days": 14,
+        "freight_cost_per_unit": 6.85,
+        "baseline_cost_per_unit": 4.10,
+        "stockout_risk_skus": ["SKU-PROMO-101", "SKU-HOME-402"],
+        "stockout_rate_pct": 5.4
+      },
+      {
+        "dc_id": "DC-MIDWEST-CHICAGO",
+        "inbound_lead_time_days": 12,
+        "historical_avg_days": 11,
+        "freight_cost_per_unit": 4.25,
+        "baseline_cost_per_unit": 4.05,
+        "stockout_rate_pct": 1.8,
+        "inventory_status_log": "ERP ledger indicates 14,200 units available in central Chicago racks (CONTRADICTION with local store scanner logs)"
+      }
+    ]
+  }
+}

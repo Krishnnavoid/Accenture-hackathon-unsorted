@@ -1,0 +1,96 @@
+{
+  "contract_version": "2.4.0",
+  "enterprise_id": "RETAIL-CORP-GLOBAL",
+  "governed_kpis": [
+    {
+      "kpi_id": "KPI_GROSS_MARGIN",
+      "name": "Gross Margin %",
+      "category": "Profitability",
+      "formula": "(Net_Revenue - COGS) / Net_Revenue * 100",
+      "unit": "%",
+      "target": 42.5,
+      "alert_threshold_bps": 150,
+      "primary_data_sources": ["POS_DAILY", "ERP_SUPPLY_WEEKLY"],
+      "driver_hierarchy": [
+        { "driver_id": "DRV_PROMO_DISC", "name": "Promotional Discounts", "source": "POS_DAILY", "lever": "Discount Depth & Promo Calendar" },
+        { "driver_id": "DRV_FREIGHT_COST", "name": "Inbound & Outbound Freight", "source": "ERP_SUPPLY_WEEKLY", "lever": "3PL Carrier Mix & Shipping Tier" },
+        { "driver_id": "DRV_PROD_MIX", "name": "High-Margin SKU Mix", "source": "POS_DAILY", "lever": "Merchandising & Placement" },
+        { "driver_id": "DRV_SUPPLIER_COGS", "name": "Base Raw Material Cost", "source": "ERP_SUPPLY_WEEKLY", "lever": "Volume Rebates & Supplier Contracts" }
+      ],
+      "access_entitlements": {
+        "Executive": "FULL_ACCESS",
+        "Regional_Manager": "MASKED_RESTRICTED",
+        "Financial_Analyst": "FULL_ACCESS_AUDIT"
+      },
+      "lineage": "POS.line_items.unit_price * qty - ERP.inventory_lots.landed_cost"
+    },
+    {
+      "kpi_id": "KPI_NET_REVENUE",
+      "name": "Net Revenue",
+      "category": "Commercial Growth",
+      "formula": "Sum(Gross_Sales - Returns - Allowances)",
+      "unit": "USD",
+      "target": 1250000,
+      "alert_threshold_pct": 5.0,
+      "primary_data_sources": ["POS_DAILY"],
+      "driver_hierarchy": [
+        { "driver_id": "DRV_STORE_TRAFFIC", "name": "Store Footfall / Traffic", "source": "POS_DAILY", "lever": "Local Marketing & Hours" },
+        { "driver_id": "DRV_CONVERSION_RATE", "name": "Checkout Conversion %", "source": "POS_DAILY", "lever": "Staffing Levels & Checkout Speed" },
+        { "driver_id": "DRV_AVG_ORDER_VALUE", "name": "Average Order Value (AOV)", "source": "POS_DAILY", "lever": "Cross-sell / Bundling" }
+      ],
+      "access_entitlements": {
+        "Executive": "FULL_ACCESS",
+        "Regional_Manager": "REGION_ROW_FILTER",
+        "Financial_Analyst": "FULL_ACCESS_AUDIT"
+      },
+      "lineage": "POS.transactions.net_amount"
+    },
+    {
+      "kpi_id": "KPI_CAC",
+      "name": "Customer Acquisition Cost (CAC)",
+      "category": "Marketing Efficiency",
+      "formula": "Total_Marketing_Spend / New_Acquired_Customers",
+      "unit": "USD",
+      "target": 48.0,
+      "alert_threshold_pct": 10.0,
+      "primary_data_sources": ["CRM_MARKETING_MONTHLY", "POS_DAILY"],
+      "driver_hierarchy": [
+        { "driver_id": "DRV_PAID_SEARCH_CPC", "name": "Paid Search CPC Bids", "source": "CRM_MARKETING_MONTHLY", "lever": "Bidding Strategy & Negative Keywords" },
+        { "driver_id": "DRV_PAID_SOCIAL_CPM", "name": "Social Ad Impression Cost", "source": "CRM_MARKETING_MONTHLY", "lever": "Audience Targeting & Creative Refresh" },
+        { "driver_id": "DRV_ORGANIC_SHARE", "name": "Organic Referral Ratio", "source": "CRM_MARKETING_MONTHLY", "lever": "SEO & Content Marketing" }
+      ],
+      "access_entitlements": {
+        "Executive": "FULL_ACCESS",
+        "Regional_Manager": "RESTRICTED_HIDDEN",
+        "Financial_Analyst": "FULL_ACCESS_AUDIT"
+      },
+      "lineage": "CRM.campaign_costs.spend / POS.customer_id.distinct_new"
+    },
+    {
+      "kpi_id": "KPI_STOCKOUT_RATE",
+      "name": "Inventory Stockout Rate %",
+      "category": "Supply Chain & Ops",
+      "formula": "Unfulfilled_SKU_Demand_Hours / Total_Operating_Hours * 100",
+      "unit": "%",
+      "target": 2.2,
+      "alert_threshold_bps": 80,
+      "primary_data_sources": ["ERP_SUPPLY_WEEKLY"],
+      "driver_hierarchy": [
+        { "driver_id": "DRV_SUPPLIER_LEAD_TIME", "name": "Supplier Delivery Lead Times", "source": "ERP_SUPPLY_WEEKLY", "lever": "Buffer Stock & Dual Sourcing" },
+        { "driver_id": "DRV_WAREHOUSE_THROUGHPUT", "name": "Cross-Dock Fulfillment Lag", "source": "ERP_SUPPLY_WEEKLY", "lever": "Shift Allocation & Automation" },
+        { "driver_id": "DRV_DEMAND_SPIKE", "name": "Unforecasted Regional Demand", "source": "POS_DAILY", "lever": "Dynamic Inter-store Transfers" }
+      ],
+      "access_entitlements": {
+        "Executive": "FULL_ACCESS",
+        "Regional_Manager": "REGION_ROW_FILTER",
+        "Financial_Analyst": "FULL_ACCESS_AUDIT"
+      },
+      "lineage": "ERP.inventory_ledger.zero_stock_events"
+    }
+  ],
+  "data_source_cadences": {
+    "POS_DAILY": { "grain": "Hourly/Daily", "expected_refresh_hours": 24, "quality_sla": 0.99 },
+    "ERP_SUPPLY_WEEKLY": { "grain": "Weekly Batch", "expected_refresh_hours": 168, "quality_sla": 0.95 },
+    "CRM_MARKETING_MONTHLY": { "grain": "Monthly/Campaign", "expected_refresh_hours": 720, "quality_sla": 0.90 }
+  }
+}

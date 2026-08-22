@@ -1,0 +1,42 @@
+{
+  "dataset_metadata": {
+    "source_id": "POS_DAILY",
+    "last_sync": "2026-08-21T23:59:59Z",
+    "freshness_status": "FRESH",
+    "record_count": 14200
+  },
+  "regions": {
+    "WEST": {
+      "region_name": "West Region (Pacific)",
+      "stores_count": 42,
+      "daily_aggregates": [
+        { "date": "2026-08-15", "gross_sales": 182000, "returns": 4200, "discounts": 12000, "net_sales": 165800, "units_sold": 4150, "footfall": 12400 },
+        { "date": "2026-08-16", "gross_sales": 178000, "returns": 3900, "discounts": 11500, "net_sales": 162600, "units_sold": 4020, "footfall": 11900 },
+        { "date": "2026-08-17", "gross_sales": 195000, "returns": 4600, "discounts": 24800, "net_sales": 165600, "units_sold": 5100, "footfall": 14200, "note": "Summer Flash Promo Launched (-25% discount)" },
+        { "date": "2026-08-18", "gross_sales": 204000, "returns": 5100, "discounts": 31200, "net_sales": 167700, "units_sold": 5450, "footfall": 15100 },
+        { "date": "2026-08-19", "gross_sales": 210000, "returns": 5300, "discounts": 33900, "net_sales": 170800, "units_sold": 5600, "footfall": 15600 },
+        { "date": "2026-08-20", "gross_sales": 208000, "returns": 4900, "discounts": 34100, "net_sales": 169000, "units_sold": 5580, "footfall": 15400 },
+        { "date": "2026-08-21", "gross_sales": 205000, "returns": 5200, "discounts": 33800, "net_sales": 166000, "units_sold": 5520, "footfall": 15200 }
+      ],
+      "sku_movements": [
+        { "sku": "SKU-PROMO-101", "name": "Smart Hydration Tumbler", "discount_pct": 28.5, "units": 1820, "margin_impact_bps": -140 },
+        { "sku": "SKU-AUDIO-204", "name": "Wireless Noise-Cancelling Buds", "discount_pct": 22.0, "units": 940, "margin_impact_bps": -70 },
+        { "sku": "SKU-ECO-901", "name": "Eco-Tech Smart Bottle (NEW LAUNCH)", "discount_pct": 0.0, "units": 240, "margin_impact_bps": 12, "sparse_history": true, "days_active": 8 }
+      ]
+    },
+    "EAST": {
+      "region_name": "East Region (Atlantic)",
+      "stores_count": 38,
+      "daily_aggregates": [
+        { "date": "2026-08-21", "gross_sales": 152000, "returns": 3100, "discounts": 14200, "net_sales": 134700, "units_sold": 3800, "footfall": 9800 }
+      ]
+    },
+    "MIDWEST": {
+      "region_name": "Midwest Region",
+      "stores_count": 29,
+      "daily_aggregates": [
+        { "date": "2026-08-21", "gross_sales": 92000, "returns": 1800, "discounts": 8200, "net_sales": 82000, "units_sold": 2100, "footfall": 9200, "anomaly_flag": "High footfall (9200) but low units (2100), conversion rate crashed to 22%" }
+      ]
+    }
+  }
+}

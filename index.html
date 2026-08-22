@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BusinessIntelligence.ai - Autonomous KPI Intelligence-to-Action Engine for Accenture Innovation Challenge 2026">
+  <title>BusinessIntelligence.ai | KPI Intelligence-to-Action Engine</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Modern Stylesheets -->
+  <link rel="stylesheet" href="css/theme.css?v=7">
+  <link rel="stylesheet" href="css/components.css?v=7">
+</head>
+<body>
+  
+  <!-- Ambient Background Mesh -->
+  <div class="ambient-mesh"></div>
+  
+  <!-- Data Upload Overlay -->
+  <div class="upload-overlay" id="upload-overlay">
+    <div class="upload-modal">
+      <div class="upload-header">
+        <h2>Ingest Enterprise Data</h2>
+        <p>Please upload the required semantic contract and mock datasets to initialize the intelligence engine.</p>
+      </div>
+      
+      <div class="file-input-group">
+        <div class="file-row">
+          <span>Semantic Contract (JSON)</span>
+          <input type="file" id="upload-contract" accept=".json">
+        </div>
+        <div class="file-row">
+          <span>POS Daily Sales (JSON)</span>
+          <input type="file" id="upload-pos" accept=".json">
+        </div>
+        <div class="file-row">
+          <span>ERP Inventory Weekly (JSON)</span>
+          <input type="file" id="upload-erp" accept=".json">
+        </div>
+        <div class="file-row">
+          <span>CRM Marketing Monthly (JSON)</span>
+          <input type="file" id="upload-crm" accept=".json">
+        </div>
+      </div>
+      
+      <div class="upload-actions">
+        <button class="btn-secondary" id="btn-use-sample">Use Sample Data</button>
+        <button class="btn-primary" id="btn-ingest-data">Ingest & Initialize</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-layout" id="main-app-layout" style="display: none;">
+    
+    <!-- Top Header & Persona Switcher -->
+    <header class="header-nav" id="header-nav">
+      <div class="brand-logo" id="brand-logo">
+        <div class="logo-badge">B</div>
+        <div class="brand-text">
+          <h1>BusinessIntelligence.ai</h1>
+          <span>KPI Intelligence-to-Action Engine</span>
+        </div>
+      </div>
+
+      <!-- Action Tools Container -->
+      <div style="display: flex; gap: 16px; align-items: center;">
+        
+        <!-- Persona Switcher -->
+        <nav class="persona-switcher" id="persona-switcher" aria-label="Role Switcher">
+          <button class="persona-btn active" id="btn-persona-exec" data-persona="Executive">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            Executive (VP)
+          </button>
+          <button class="persona-btn" id="btn-persona-ops" data-persona="Regional_Manager">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            Regional Operations
+          </button>
+          <button class="persona-btn" id="btn-persona-analyst" data-persona="Financial_Analyst">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Financial Analyst
+          </button>
+        </nav>
+
+        <!-- Theme Toggle Button -->
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Scenario Ribbon Selector -->
+    <section class="scenario-ribbon" id="scenario-ribbon">
+      <div class="scenario-label">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+        Demo Scenarios:
+      </div>
+      <div class="scenario-chips" id="scenario-chips">
+        <button class="scenario-chip active" id="chip-scenario-1" data-scenario="SCENARIO_1">
+          <span>1. Multi-Factor Margin Squeeze</span>
+          <span class="scenario-badge badge-multi">Multi-Driver</span>
+        </button>
+        <button class="scenario-chip" id="chip-scenario-2" data-scenario="SCENARIO_2">
+          <span>2. Data Conflict & Abstention</span>
+          <span class="scenario-badge badge-abstain">Self-Restraint</span>
+        </button>
+        <button class="scenario-chip" id="chip-scenario-3" data-scenario="SCENARIO_3">
+          <span>3. Cold-Start / Sparse Launch</span>
+          <span class="scenario-badge badge-sparse">Bayesian Prior</span>
+        </button>
+        <button class="scenario-chip" id="chip-scenario-4" data-scenario="SCENARIO_4">
+          <span>4. RBAC & Data Masking</span>
+          <span class="scenario-badge badge-rbac">Security</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <main id="app-main" style="display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- Connected KPIs Grid -->
+      <section class="kpi-grid" id="kpi-grid" aria-label="Governed Connected KPIs">
+        <!-- Rendered dynamically by app.js -->
+      </section>
+
+      <!-- Intelligence Workspace (Two Columns) -->
+      <div class="workspace-grid">
+        
+        <!-- Left Column: Synthesized Intelligence & Governed Actions -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          
+          <!-- Narrative Briefing Card -->
+          <section class="intelligence-card" id="narrative-card">
+            <div class="card-title-bar">
+              <h2>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Persona Intelligence Narrative
+              </h2>
+              <span class="ai-engine-badge">Grounded LLM Synthesizer</span>
+            </div>
+            
+            <div id="narrative-content">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </section>
+
+          <!-- Action Plan Matrix Card -->
+          <section class="intelligence-card" id="actions-card">
+            <div class="card-title-bar">
+              <h2>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Governed Action Recommendations
+              </h2>
+              <span style="font-size: 12px; color: var(--text-muted);">Schema: Driver → Lever → Action → Impact</span>
+            </div>
+
+            <div class="actions-container" id="actions-container">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </section>
+
+        </div>
+
+        <!-- Right Column: Deterministic Waterfall Decomposition & Lineage -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          
+          <!-- Waterfall Variance Chart Card -->
+          <section class="waterfall-card" id="waterfall-card">
+            <div class="card-title-bar">
+              <h2>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                Deterministic Waterfall Math
+              </h2>
+              <span style="font-size: 11px; font-weight: 700; color: var(--accent-emerald); font-family: var(--font-mono);">100% Non-LLM Calculation</span>
+            </div>
+
+            <div id="waterfall-chart-container">
+              <!-- Rendered dynamically by chart_renderer.js -->
+            </div>
+          </section>
+
+          <!-- Evidence & Lineage Card -->
+          <section id="evidence-container">
+            <!-- Rendered dynamically by app.js -->
+          </section>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Chatbot UI -->
+  <button class="chatbot-fab" id="chatbot-fab" aria-label="Open AI Assistant">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  </button>
+
+  <div class="chatbot-panel" id="chatbot-panel" style="display: none;">
+    <div class="chatbot-header">
+      <div class="chatbot-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 16v-4"></path>
+          <path d="M12 8h.01"></path>
+        </svg>
+        <span>BusinessIntelligence.ai Assistant</span>
+      </div>
+      <button class="chatbot-close" id="chatbot-close">&times;</button>
+    </div>
+    <div class="chatbot-messages" id="chatbot-messages">
+      <div class="chat-message ai-message">
+        Hello! I am your Autonomous Enterprise Agent. Ask me about the data, our deterministic math, or the semantic contract.
+      </div>
+    </div>
+    <div class="chatbot-input-area">
+      <input type="text" id="chatbot-input" placeholder="Ask a question..." autocomplete="off">
+      <button id="chatbot-send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Real-Time Telemetry & Lineage Inspector Dock -->
+  <footer class="telemetry-dock" id="telemetry-dock" aria-label="System Runtime Telemetry">
+    <div class="telemetry-left">
+      <div class="telemetry-stat">
+        <span class="stat-label">Architecture:</span>
+        <span class="stat-value">Hybrid (Tableau Embedded)</span>
+      </div>
+      <div class="telemetry-stat">
+        <span class="stat-label">Data Cloud:</span>
+        <span class="stat-value stat-val-highlight">Snowflake</span>
+      </div>
+      <div class="telemetry-stat">
+        <span class="stat-label">Compute:</span>
+        <span class="stat-value stat-val-highlight">Databricks</span>
+      </div>
+      <div class="telemetry-stat">
+        <span class="stat-label">Total Latency:</span>
+        <span class="stat-value" id="stat-tot-lat">332.4 ms</span>
+      </div>
+      <div class="telemetry-stat">
+        <span class="stat-label">Tokens:</span>
+        <span class="stat-value" id="stat-tokens">990</span>
+      </div>
+      <div class="telemetry-stat">
+        <span class="stat-label">Est. Cost / Insight:</span>
+        <span class="stat-value stat-val-green" id="stat-cost">$0.00120</span>
+      </div>
+    </div>
+    
+    <button class="feedback-trigger" id="btn-open-feedback">
+      ⚙️ Governance & Audit Logs
+    </button>
+  </footer>
+
+  <!-- App Script Entrypoint -->
+  <script type="module" src="js/app.js?v=11"></script>
+
+</body>
+</html>
