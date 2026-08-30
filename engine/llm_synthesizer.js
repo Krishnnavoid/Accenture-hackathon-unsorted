@@ -54,58 +54,61 @@ export class LLMSynthesizerEngine {
 
     if (!narrativeText) {
       if (persona === "Executive") {
+        const primary = deterministicData.drivers && deterministicData.drivers[0] ? deterministicData.drivers[0] : { name: "Driver 1", impact_bps: 0, dollar_impact: 0 };
+        const secondary = deterministicData.drivers && deterministicData.drivers[1] ? deterministicData.drivers[1] : { name: "Driver 2", impact_bps: 0, dollar_impact: 0 };
+        const volDriver = deterministicData.drivers && deterministicData.drivers.find(d => d.category === 'Volume Effect');
+        
         narrativeText = `
 **Executive Briefing: Gross Margin Contraction Analysis**
-Over the trailing 7-day period, enterprise **Gross Margin % contracted by 380 bps** (from 42.50% baseline to 38.70%), generating an estimated **$190,000 weekly gross profit headwind**.
+Over the trailing 7-day period, enterprise **Gross Margin % changed by ${deterministicData.net_delta_bps} bps** (from ${deterministicData.baseline} baseline to ${deterministicData.current}), generating an estimated **$${Math.abs(deterministicData.net_delta_bps * 500).toLocaleString()} weekly gross profit impact**.
 
-Quantitative decomposition isolates two primary compounding drivers:
-1. **Promotional Discounting (-210 bps / -$105,000 impact):** The Summer Flash promotion exceeded volume projections (+18% units) but diluted blended realization due to high redemption on sub-$40 items.
-2. **Global Freight Surcharges (-170 bps / -$85,000 impact):** Red Sea shipping route adjustments drove an unexpected +42.4% spot-rate surcharge on inbound containers.
+Quantitative decomposition isolates primary compounding drivers:
+1. **${primary.name} (${primary.impact_bps} bps / $${primary.dollar_impact.toLocaleString()} impact)**
+2. **${secondary.name} (${secondary.impact_bps} bps / $${secondary.dollar_impact.toLocaleString()} impact)**
 
-**Strategic Imperative:** Immediate threshold recalibration on Summer Flash promotions combined with intermodal carrier re-routing will recover **~230 bps of margin within 14 days**.
+**Strategic Imperative:** Immediate threshold recalibration on promotions combined with carrier re-routing is required to recover margin.
         `.trim();
 
         keyTakeaways = [
-          "Gross Margin down 380 bps ($190k weekly impact) driven 55% by promo depth and 45% by freight surcharges.",
-          "Revenue volume elasticity (+45 bps lift) was insufficient to offset discount depth.",
-          "Recommended C-Suite action: Enact $75 minimum basket threshold on -25% discounts."
+          `Gross Margin changed ${deterministicData.net_delta_bps} bps ($${Math.abs(deterministicData.net_delta_bps * 500).toLocaleString()} weekly impact).`,
+          `Volume elasticity (${volDriver ? volDriver.impact_bps : 0} bps lift) was insufficient to offset discount depth.`,
+          "Recommended C-Suite action: Enact minimum basket thresholds on discounts."
         ];
 
         evidenceCitations = [
-          { claim: "Margin dropped 380 bps", source: "POS_DAILY.line_items vs ERP_SUPPLY_WEEKLY", verified_math: "38.70% - 42.50% = -3.80%" },
-          { claim: "Freight surcharge +42.4%", source: "ERP_SUPPLY_WEEKLY.logistics_and_cogs.global_freight_index", verified_math: "Index 142.4 vs Base 100.0" }
+          { claim: `Margin changed ${deterministicData.net_delta_bps} bps`, source: "POS_DAILY.line_items vs ERP_SUPPLY_WEEKLY", verified_math: `${deterministicData.current} - ${deterministicData.baseline} = ${deterministicData.net_delta_bps / 100}%` },
+          { claim: `${secondary.name} impact`, source: "ERP_SUPPLY_WEEKLY", verified_math: `${secondary.impact_bps} bps` }
         ];
       } else if (persona === "Regional_Manager") {
         narrativeText = `
 **West Region Operations Action Summary**
-Attention: Store Operations & Warehouse Management (West Pacific Region)
+Attention: Store Operations & Warehouse Management
 
-While West region unit sales surged to **5,520 units/day**, local store stockout rates elevated to **5.4%** at the Oakland Distribution Center, with critical depletion on *Smart Hydration Tumblers (SKU-PROMO-101)*.
+While regional unit sales surged, local store stockout rates elevated above SLA, with critical depletion on key promotional items.
 
 **Operational Action Checklist:**
-- **Inter-hub Rebalancing:** Authorize expedited truck transfer of 450 units from Reno hub to Oakland DC today.
-- **Store Floor Staffing:** Deploy +2 checkout associates during peak 2 PM - 7 PM rush to resolve checkout abandonment.
-- **Ship-from-Store:** Activated for top 8 high-inventory stores in Northern California.
+- **Inter-hub Rebalancing:** Authorize expedited truck transfer to address immediate gaps today.
+- **Store Floor Staffing:** Deploy additional checkout associates during peak rushes to resolve checkout abandonment.
+- **Ship-from-Store:** Activated for top high-inventory stores.
         `.trim();
 
         keyTakeaways = [
-          "West regional stockout rate peaked at 5.4% (Target < 2.2%).",
-          "SKU-PROMO-101 accounts for 62% of regional stockout inquiries.",
-          "Operational transfer from Reno authorized under Regional Discretion."
+          "Regional stockout rate exceeded SLA.",
+          "High priority SKUs account for majority of stockout inquiries.",
+          "Operational transfer authorized under Regional Discretion."
         ];
 
         evidenceCitations = [
-          { claim: "Oakland DC Stockout Rate 5.4%", source: "ERP_SUPPLY_WEEKLY.regional_distribution_centers[DC-WEST-OAKLAND]", verified_math: "5.4% vs 2.2% SLA" },
-          { claim: "West Unit Velocity 5,520/day", source: "POS_DAILY.regions.WEST.daily_aggregates", verified_math: "Sum of 42 stores" }
+          { claim: "Stockout Rate above SLA", source: "ERP_SUPPLY_WEEKLY.regional_distribution_centers", verified_math: "Actual > Target SLA" }
         ];
       } else {
         // Financial Analyst Persona
         narrativeText = `
 **Deterministic Quantitative Variance Audit Report**
-- Target Gross Margin: 42.50% | Actual Realized: 38.70% | Net Delta: -380 bps
+- Target Gross Margin: ${deterministicData.baseline} | Actual Realized: ${deterministicData.current} | Net Delta: ${deterministicData.net_delta_bps} bps
 - Additive Model Decomposition:
-  ΔGM = ΔPrice_Promo (-210 bps) + ΔFreight (-170 bps) + ΔVolume (+45 bps) + ΔMix (-45 bps)
-  Net Sum = -380 bps (Reconciliation Match = 100.0% True)
+  ΔGM = ${deterministicData.drivers.map(d => `${d.name} (${d.impact_bps} bps)`).join(' + ')}
+  Net Sum = ${deterministicData.net_verified_bps} bps (Reconciliation Match = ${deterministicData.math_reconciliation_valid ? '100.0% True' : 'Failed'})
 - Statistical Materiality: $Z = 3.12$ ($p < 0.001$, Significant).
 - Source Refresh Cadences: POS_DAILY (T-1h Fresh), ERP_SUPPLY_WEEKLY (T-48h Fresh).
         `.trim();
@@ -117,8 +120,7 @@ While West region unit sales surged to **5,520 units/day**, local store stockout
         ];
 
         evidenceCitations = [
-          { claim: "Decomposition Sum -380 bps", source: "engine/deterministic_analytics.js::decomposeGrossMarginMovement()", verified_math: "Sum(-210, -170, +45, -45) = -380" },
-          { claim: "Statistical Significance Z=3.12", source: "Historical 90-day EWMA variance model", verified_math: "Delta / StdDev(1.21%) = 3.12" }
+          { claim: `Decomposition Sum ${deterministicData.net_verified_bps} bps`, source: "engine/deterministic_analytics.js::decomposeGrossMarginMovement()", verified_math: `Sum = ${deterministicData.net_verified_bps}` }
         ];
       }
     }
