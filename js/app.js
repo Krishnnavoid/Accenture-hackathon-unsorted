@@ -77,7 +77,10 @@ class AppController {
     const addMessage = (text, isUser = false) => {
       const msgDiv = document.createElement('div');
       msgDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'}`;
-      msgDiv.innerText = text;
+      let htmlText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      msgDiv.innerHTML = htmlText;
       messages.appendChild(msgDiv);
       messages.scrollTop = messages.scrollHeight;
     };
@@ -100,33 +103,45 @@ class AppController {
       messages.appendChild(typingDiv);
       messages.scrollTop = messages.scrollHeight;
 
-      setTimeout(() => {
+      setTimeout(async () => {
         messages.removeChild(typingDiv);
+        
+        let aiResponse = "";
+        
+        // Use live Gemini API if available
+        if (this.synthesizerEngine && this.synthesizerEngine.apiKey) {
+          try {
+            const prompt = `You are BusinessIntelligence.ai, an autonomous enterprise AI agent. 
+            The user is currently viewing the ${this.currentScenario} scenario as a ${this.currentPersona}.
+            Answer their following question concisely and professionally: "${text}"`;
+            
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.synthesizerEngine.apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              aiResponse = data.candidates[0].content.parts[0].text;
+            } else {
+              aiResponse = "API Error: Unable to fetch live response from Gemini.";
+            }
+          } catch (err) {
+            aiResponse = "Network Error: Could not connect to Gemini API.";
+          }
+        } 
+        
+        // Fallback to keyword matching if no API key or API failed
+        if (!aiResponse || aiResponse.startsWith("API Error") || aiResponse.startsWith("Network Error")) {
+          aiResponse = this.getSmartChatResponse(text);
+        }
+
+        addMessage(aiResponse);
         input.disabled = false;
         sendBtn.disabled = false;
         input.focus();
-
-        const lower = text.toLowerCase();
-        
-        // Simple Keyword Matching Logic
-        if (lower.includes('margin') || lower.includes('calculate') || lower.includes('math') || lower.includes('waterfall')) {
-          addMessage("Our platform uses a Deterministic Analytics Engine (run on Databricks) that executes hard-coded financial formulas (like Gross Margin = (Revenue - COGS) / Revenue). We do NOT let the LLM guess the math. The LLM only reads the verified outputs.");
-        } else if (lower.includes('contract') || lower.includes('semantic') || lower.includes('data') || lower.includes('rbac')) {
-          addMessage("The Semantic Contract is a strict JSON rulebook stored in Snowflake. It defines exactly how KPIs are calculated, what tables to pull from, and who has access to view them (RBAC). It guarantees consistency across the enterprise.");
-        } else if (lower.includes('hallucinate') || lower.includes('hallucination') || lower.includes('safe') || lower.includes('trust')) {
-          addMessage("We prevent hallucinations by separating the 'Thinking' from the 'Math'. The Generative LLM is physically restricted from doing calculations. It is only given the final, verified numbers from our Deterministic Engine to generate the text summary.");
-        } else if (lower.includes('architecture') || lower.includes('hybrid') || lower.includes('stack')) {
-          addMessage("We use a Hybrid Platform-Native Architecture: Snowflake acts as our Data Cloud and stores the Semantic Contract. Databricks handles the heavy deterministic compute. Tableau acts as the UI layer, and our custom Agentic Orchestrator ties it all together.");
-        } else if (lower.includes('businessintelligence') || lower.includes('goal') || lower.includes('purpose') || lower.includes('trying to do') || lower.includes('agentic')) {
-          addMessage("BusinessIntelligence.ai is an Agentic AI platform designed to replace traditional static dashboards. It connects to your enterprise data (like Snowflake), runs verified financial math (on Databricks), and uses Generative AI to instantly explain the 'why' behind the numbers, rather than just showing you the 'what'.");
-        } else if (lower.includes('persona') || lower.includes('narrative') || lower.includes('briefing') || lower.includes('role')) {
-          addMessage("The Persona Intelligence Narrative is generated dynamically by our LLM Synthesizer. Based on your logged-in Role (e.g. CFO vs Regional Manager), the AI reads the Data Cloud's RBAC policy, filters out numbers you aren't allowed to see, and writes a tailored executive briefing just for you.");
-        } else if (lower.includes('ai') || lower.includes('model') || lower.includes('llm') || lower.includes('intelligence') || lower.includes('smart') || lower.includes('work') || lower.includes('feature')) {
-          addMessage("I am powered by a Hybrid AI Architecture. I don't just generate text; I act as an Orchestrator. I read the Semantic Contract from Snowflake, execute Deterministic Math on Databricks to find anomalies, and then synthesize those insights into a readable narrative. This guarantees 100% accuracy with zero hallucinations.");
-        } else {
-          addMessage("As an Agentic AI, my primary function is to analyze the deterministic KPIs on your dashboard and explain the root causes behind them. Whether you want to know about our Architecture, how we calculate Gross Margin, or how we enforce Role-Based Access Control, I have the answers. What would you like to explore?");
-        }
-      }, 1000);
+      }, 500);
     };
 
     sendBtn.addEventListener('click', handleSend);
@@ -179,9 +194,11 @@ class AppController {
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
-            resolve(JSON.parse(e.target.result));
+            const data = JSON.parse(e.target.result);
+            if (typeof data !== 'object' || data === null) throw new Error("Root is not a JSON object");
+            resolve(data);
           } catch (err) {
-            reject(new Error(`Invalid JSON in ${file.name}`));
+            reject(new Error(`Invalid JSON format in ${file.name}: ${err.message}`));
           }
         };
         reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
@@ -267,9 +284,17 @@ class AppController {
 
         this.currentScenario = scenario;
 
-        // Auto-adapt persona if RBAC scenario is picked
+        // Auto-adapt persona and lock UI if RBAC scenario is picked
         if (scenario === 'SCENARIO_4') {
           this.setPersonaUI('Regional_Manager');
+          document.getElementById('persona-switcher').style.pointerEvents = 'none';
+          document.getElementById('persona-switcher').style.opacity = '0.5';
+        } else {
+          if (this.currentScenario === 'SCENARIO_4') {
+            this.setPersonaUI('Executive');
+          }
+          document.getElementById('persona-switcher').style.pointerEvents = 'auto';
+          document.getElementById('persona-switcher').style.opacity = '1';
         }
 
         await this.runScenario(scenario);
@@ -612,6 +637,154 @@ class AppController {
     document.getElementById('stat-tokens').innerText = `${telemetry.totalTokens} (${telemetry.inputTokens} in / ${telemetry.outputTokens} out)`;
     document.getElementById('stat-cost').innerText = telemetry.estimatedCostUSD;
   }
+
+  /**
+   * Smart contextual chatbot response engine with broad topic coverage
+   */
+  getSmartChatResponse(userText) {
+    const lower = userText.toLowerCase().trim();
+
+    // --- Greeting / small talk ---
+    if (/^(hi|hello|hey|good\s*(morning|afternoon|evening)|howdy|sup|yo)\b/.test(lower)) {
+      const greetings = [
+        `Hello! I'm your BusinessIntelligence.ai assistant. You're currently viewing the ${this.currentScenario.replace('_', ' ')} scenario as a ${this.currentPersona.replace('_', ' ')}. Ask me about any KPI, the waterfall math, or how the engine works!`,
+        `Hey there! I see you're exploring data as a ${this.currentPersona.replace('_', ' ')}. I can explain any KPI on your dashboard, walk you through the deterministic math, or discuss our architecture. What interests you?`,
+        `Welcome! I have full context on your current dashboard state. Try asking me about gross margin, revenue, stockout rates, or how we prevent AI hallucinations.`
+      ];
+      return greetings[Math.floor(Math.random() * greetings.length)];
+    }
+
+    // --- Help / what can you do ---
+    if (lower.includes('help') || lower.includes('what can you') || lower.includes('what do you') || lower.includes('capabilities') || lower.includes('features')) {
+      return `Here's what I can help you with:\n\n• KPI Analysis — Ask about Gross Margin, Revenue, CAC, or Stockout Rate\n• Waterfall Math — How we decompose margin movements deterministically\n• Scenarios — Details on all 4 demo scenarios\n• Architecture — Our Snowflake + Databricks + Tableau hybrid stack\n• Security — RBAC, data masking, and governance policies\n• AI Safety — How we prevent hallucinations and ensure trust\n• Actions — The recommended interventions and their expected impact\n\nJust type naturally — I understand conversational questions!`;
+    }
+
+    // --- Margin / Gross Margin ---
+    if (lower.includes('margin') || lower.includes('gross margin') || lower.includes('profitability')) {
+      const kpis = this.analyticsEngine ? this.analyticsEngine.evaluateKPIs(this.currentPersona) : null;
+      const gmKpi = kpis?.evaluatedKPIs?.find(k => k.name?.toLowerCase().includes('gross margin'));
+      if (gmKpi) {
+        return `📊 Gross Margin is currently at ${gmKpi.current_value}% against a target of ${gmKpi.target_value}%, a variance of ${gmKpi.variance_bps} bps. Status: ${gmKpi.status.replace('_', ' ')}.\n\nThe decline is driven by three factors: rising COGS (+220 bps impact from raw material inflation), regional mix shift (Midwest underperformance at 35.1% vs 42.5% target), and promotional dilution (-85 bps from aggressive discounting).\n\nAll these numbers come from our Deterministic Analytics Engine on Databricks — zero LLM involvement in the math.`;
+      }
+      return "Gross Margin is a key profitability KPI calculated deterministically as (Revenue - COGS) / Revenue. Our engine decomposes margin movements into individual drivers (COGS inflation, mix shift, promo dilution) using hard-coded financial formulas — never LLM guesswork.";
+    }
+
+    // --- Revenue ---
+    if (lower.includes('revenue') || lower.includes('sales') || lower.includes('net revenue') || lower.includes('top line') || lower.includes('topline')) {
+      const kpis = this.analyticsEngine ? this.analyticsEngine.evaluateKPIs(this.currentPersona) : null;
+      const revKpi = kpis?.evaluatedKPIs?.find(k => k.name?.toLowerCase().includes('revenue'));
+      if (revKpi) {
+        return `💰 Net Revenue is currently $${revKpi.current_value.toLocaleString()} against a target of $${revKpi.target_value.toLocaleString()}, reflecting a ${revKpi.variance_bps} bps shortfall.\n\nThe revenue gap is primarily driven by lower foot traffic conversion in the Midwest region and higher-than-planned promotional markdowns. The POS Daily data source feeds this KPI in near-real-time.`;
+      }
+      return "Net Revenue tracks total commercial performance. Our engine pulls this from POS_DAILY sales data and cross-validates against ERP ledger entries to ensure accuracy.";
+    }
+
+    // --- CAC / Customer Acquisition Cost ---
+    if (lower.includes('cac') || lower.includes('acquisition cost') || lower.includes('customer acquisition') || lower.includes('marketing cost') || lower.includes('marketing efficiency')) {
+      const kpis = this.analyticsEngine ? this.analyticsEngine.evaluateKPIs(this.currentPersona) : null;
+      const cacKpi = kpis?.evaluatedKPIs?.find(k => k.name?.toLowerCase().includes('acquisition'));
+      if (cacKpi) {
+        return `📈 Customer Acquisition Cost (CAC) is at $${cacKpi.current_value} vs. a target of $${cacKpi.target_value}, which is ${cacKpi.variance_bps} bps above target — flagged as ${cacKpi.status.replace('_', ' ')}.\n\nThis spike indicates declining marketing efficiency. The CRM_MARKETING_MONTHLY data source shows campaign spend rising while conversion rates have dropped, suggesting channel saturation or targeting misalignment.`;
+      }
+      return "CAC measures how much it costs to acquire a new customer. It's sourced from CRM_MARKETING_MONTHLY data and flagged when it exceeds the contract-defined threshold.";
+    }
+
+    // --- Stockout / Inventory ---
+    if (lower.includes('stockout') || lower.includes('inventory') || lower.includes('stock') || lower.includes('supply chain') || lower.includes('supply')) {
+      const kpis = this.analyticsEngine ? this.analyticsEngine.evaluateKPIs(this.currentPersona) : null;
+      const stockKpi = kpis?.evaluatedKPIs?.find(k => k.name?.toLowerCase().includes('stockout'));
+      if (stockKpi) {
+        return `📦 Inventory Stockout Rate is at ${stockKpi.current_value}% vs. a target of ${stockKpi.target_value}%, a variance of +${stockKpi.variance_bps} bps — ${stockKpi.status.replace('_', ' ')}.\n\nHigh stockout rates directly impact revenue (lost sales) and margin (emergency replenishment costs). This KPI is sourced from ERP_SUPPLY_WEEKLY data covering all regional distribution centers.`;
+      }
+      return "Stockout Rate measures the percentage of SKUs that are out of stock. It's fed by ERP_SUPPLY_WEEKLY data and is critical for supply chain health.";
+    }
+
+    // --- Waterfall / Math / Calculation / Decomposition ---
+    if (lower.includes('waterfall') || lower.includes('calculate') || lower.includes('math') || lower.includes('decompos') || lower.includes('formula') || lower.includes('deterministic')) {
+      return "The Waterfall Decomposition Chart breaks down exactly WHY Gross Margin moved by -380 bps. Each bar represents a specific driver:\n\n• COGS Inflation: -220 bps (raw material cost surge)\n• Regional Mix Shift: -75 bps (Midwest underperformance)\n• Promo Dilution: -85 bps (aggressive markdowns)\n\nCritically, this is 100% deterministic math executed on Databricks — the LLM never touches these calculations. It only narrates the pre-computed results. This separation is what prevents hallucinated numbers.";
+    }
+
+    // --- Semantic Contract ---
+    if (lower.includes('contract') || lower.includes('semantic')) {
+      return "The Semantic Contract is a strict JSON governance document stored in Snowflake. It defines:\n\n• KPI Definitions — exact formulas, thresholds, and anomaly rules\n• Data Source Mappings — which tables feed which KPIs\n• RBAC Policies — who can view what data at which granularity\n• Abstention Rules — when the AI must refuse to act due to low confidence\n\nEvery calculation and recommendation traces back to this contract, ensuring full auditability and zero ad-hoc reasoning.";
+    }
+
+    // --- RBAC / Security / Access / Masking ---
+    if (lower.includes('rbac') || lower.includes('role') || lower.includes('access') || lower.includes('security') || lower.includes('mask') || lower.includes('permission') || lower.includes('governance')) {
+      return `🔒 Our RBAC (Role-Based Access Control) system enforces data visibility per persona:\n\n• Executive (VP): Full access to all KPIs, margin decomposition, and company-wide financials\n• Regional Manager: Scoped to operational store metrics; enterprise margin data is REDACTED\n• Financial Analyst: Full numerical access but action recommendations require VP approval\n\nYou're currently viewing as "${this.currentPersona.replace('_', ' ')}". Try switching to Scenario 4 (RBAC & Data Masking) to see how the same dashboard looks with restricted access.`;
+    }
+
+    // --- Hallucination / Trust / Safety ---
+    if (lower.includes('hallucin') || lower.includes('safe') || lower.includes('trust') || lower.includes('accurate') || lower.includes('reliable') || lower.includes('grounding')) {
+      return "We prevent AI hallucinations through a strict architectural separation:\n\n1️⃣ Deterministic Engine (Databricks): Runs all financial math — formulas, decompositions, thresholds. Zero LLM involvement.\n2️⃣ LLM Synthesizer: Only receives pre-computed, verified numbers. It narrates; it doesn't calculate.\n3️⃣ Evidence Citations: Every claim in the narrative links back to a specific data source and formula.\n4️⃣ Abstention Protocol: If confidence drops below 60%, the system refuses to recommend actions (see Scenario 2).\n\nThis means the AI literally cannot invent numbers — it only sees and reports verified outputs.";
+    }
+
+    // --- Architecture / Tech Stack ---
+    if (lower.includes('architect') || lower.includes('hybrid') || lower.includes('stack') || lower.includes('tech') || lower.includes('snowflake') || lower.includes('databricks') || lower.includes('tableau')) {
+      return "Our Hybrid Platform-Native Architecture consists of:\n\n☁️ Snowflake (Data Cloud): Stores the Semantic Contract, raw enterprise data, and RBAC policies\n⚡ Databricks (Compute): Executes all deterministic financial formulas and KPI evaluations\n📊 Tableau (Visualization): Renders the executive dashboard with embedded analytics\n🤖 Agentic Orchestrator: Coordinates the pipeline — data ingestion → deterministic math → LLM synthesis → action recommendations\n\nThis separation ensures each platform does what it's best at, with no single point of AI failure.";
+    }
+
+    // --- Scenarios ---
+    if (lower.includes('scenario') || lower.includes('demo')) {
+      return `We have 4 demo scenarios showcasing different capabilities:\n\n1️⃣ Multi-Factor Margin Squeeze — Shows how we decompose a -380 bps margin decline into 3 distinct drivers\n2️⃣ Data Conflict & Abstention — Demonstrates AI self-restraint when POS and ERP data contradict\n3️⃣ Cold-Start / Sparse Launch — Uses Bayesian priors for a new product with only 8 days of data\n4️⃣ RBAC & Data Masking — Same data, but filtered through Regional Manager access restrictions\n\nYou're currently on ${this.currentScenario.replace('_', ' ')}. Click the scenario chips at the top to switch!`;
+    }
+
+    // --- Actions / Recommendations ---
+    if (lower.includes('action') || lower.includes('recommend') || lower.includes('what should') || lower.includes('suggestion') || lower.includes('what to do') || lower.includes('next step')) {
+      return "The Governed Action Recommendations follow a strict schema: Driver → Lever → Action → Impact.\n\nFor the current margin squeeze scenario, key recommendations include:\n• Renegotiate COGS contracts with top 3 suppliers (expected +120 bps recovery)\n• Reduce Midwest promotional depth by 15% (expected +50 bps)\n• Rebalance regional inventory allocation to high-performing stores\n\nEach action has an assigned owner, decision rights level, confidence score, and monitoring plan. Actions are only recommended when confidence exceeds 60%.";
+    }
+
+    // --- Abstention / Confidence ---
+    if (lower.includes('abstain') || lower.includes('abstention') || lower.includes('refuse') || lower.includes('confidence') || lower.includes('threshold') || lower.includes('conflict')) {
+      return "Abstention is a core safety feature. In Scenario 2, POS data shows a Midwest conversion drop to 22%, but ERP claims 14,200 units in stock — a direct contradiction.\n\nWhen this happens:\n🛑 Confidence drops to 36.5% (below the 60% mandatory threshold)\n🛑 All automated actions are SUSPENDED\n🛑 The system explicitly asks humans to verify physical inventory counts\n\nThis 'right to refuse' is what separates responsible AI from reckless automation.";
+    }
+
+    // --- Bayesian / Cold Start / New Product ---
+    if (lower.includes('bayesian') || lower.includes('cold start') || lower.includes('cold-start') || lower.includes('new product') || lower.includes('launch') || lower.includes('sparse')) {
+      return "For new products with sparse data (Scenario 3), standard anomaly detection fails because there isn't enough history.\n\nOur solution: Hierarchical Bayesian Category Analogues\n• Prior: Uses 2025 Premium Hydration category data as baseline (μ₀ = 25 units/day)\n• Observed: 8 days of actual sales (x̄ = 30 units/day)\n• Posterior: Blended estimate of 28.1 units/day with ±18.5% uncertainty\n\nThe system explicitly flags the wide confidence interval and recommends waiting 6 more days before committing to factory replenishment.";
+    }
+
+    // --- KPI general ---
+    if (lower.includes('kpi') || lower.includes('metric') || lower.includes('indicator') || lower.includes('dashboard')) {
+      return `The dashboard tracks 4 governed KPIs, all defined in the Semantic Contract:\n\n1. Gross Margin % (Profitability) — Target: 42.5%\n2. Net Revenue (Commercial Growth) — Target: $1,250,000\n3. Customer Acquisition Cost (Marketing Efficiency) — Target: $48\n4. Inventory Stockout Rate (Supply Chain & Ops) — Target: 2.2%\n\nEach KPI has anomaly thresholds, RBAC visibility rules, and source lineage. Currently viewing as ${this.currentPersona.replace('_', ' ')} in ${this.currentScenario.replace('_', ' ')}.`;
+    }
+
+    // --- Cost / Pricing ---
+    if (lower.includes('cost') || lower.includes('price') || lower.includes('pricing') || lower.includes('cogs') || lower.includes('expensive')) {
+      return "The platform's per-insight cost is extremely low:\n\n• Estimated Cost per Insight: ~$0.0024\n• Total Tokens per Analysis: ~990 (680 input / 310 output)\n• Total Latency: ~310ms end-to-end\n\nThis efficiency comes from our hybrid approach — Databricks handles the heavy math computation, while the LLM only generates a concise narrative summary from pre-computed results. No wasteful chain-of-thought token burn.";
+    }
+
+    // --- Persona ---
+    if (lower.includes('persona') || lower.includes('executive') || lower.includes('analyst') || lower.includes('regional') || lower.includes('manager') || lower.includes('vp')) {
+      return `The platform supports 3 personas with different data access levels:\n\n👔 Executive (VP): Full visibility — all KPIs, margin waterfall, company-wide financials, and action approvals\n🏬 Regional Operations: Scoped to store-level metrics — enterprise margin data is masked under RBAC Policy #204\n📊 Financial Analyst: Full numerical access but recommendations require executive sign-off\n\nYou're currently viewing as "${this.currentPersona.replace('_', ' ')}". Use the persona switcher in the header to change views.`;
+    }
+
+    // --- Accenture / Competition / About ---
+    if (lower.includes('accenture') || lower.includes('competition') || lower.includes('hackathon') || lower.includes('challenge') || lower.includes('about') || lower.includes('who')) {
+      return "BusinessIntelligence.ai was built for the Accenture Innovation Challenge 2026. It demonstrates an Autonomous KPI Intelligence-to-Action Engine that:\n\n• Turns raw enterprise data into governed, traceable insights\n• Uses deterministic math (not LLM guessing) for all financial calculations\n• Enforces RBAC, abstention protocols, and full evidence lineage\n• Supports multi-persona views with context-adapted narratives\n\nThe goal: move from 'dashboards you stare at' to 'intelligence that acts.'";
+    }
+
+    // --- Thank you / bye ---
+    if (/^(thanks|thank you|thx|bye|goodbye|see you|cheers)\b/.test(lower)) {
+      const replies = [
+        "You're welcome! Feel free to ask anything else about the dashboard or our engine. 🚀",
+        "Happy to help! Don't hesitate to explore different scenarios and personas for the full experience.",
+        "Glad I could assist! Try switching scenarios or personas to see how the intelligence adapts."
+      ];
+      return replies[Math.floor(Math.random() * replies.length)];
+    }
+
+    // --- Randomized smart fallbacks (never the same twice in a row) ---
+    const fallbacks = [
+      `I can provide detailed analysis on any KPI visible on your dashboard. You're currently viewing ${this.currentScenario.replace('_', ' ')} as ${this.currentPersona.replace('_', ' ')}. Try asking about "gross margin", "revenue", "stockout rate", or "how does the waterfall work?"`,
+      `Great question! I'm best at explaining the data on your dashboard. Try asking:\n• "What's happening with gross margin?"\n• "Explain the waterfall chart"\n• "How do you prevent hallucinations?"\n• "What are the recommended actions?"`,
+      `I'm the intelligence layer for this dashboard. I can explain any KPI, the deterministic math behind it, our architecture, or the security model. What area interests you most?`,
+      `Here are some things I know deeply:\n📊 KPI analysis (margin, revenue, CAC, stockouts)\n🔢 Deterministic waterfall math\n🔒 RBAC & data governance\n🤖 AI safety & abstention protocols\n🏗️ Architecture (Snowflake + Databricks + Tableau)\n\nPick any topic!`,
+      `I noticed you're on ${this.currentScenario.replace('_', ' ')}. ${this.currentScenario === 'SCENARIO_1' ? 'This scenario shows a multi-factor margin squeeze. Ask me about the -380 bps decline!' : this.currentScenario === 'SCENARIO_2' ? 'This demonstrates AI abstention when data conflicts. Ask me why!' : this.currentScenario === 'SCENARIO_3' ? 'This covers cold-start analysis with Bayesian priors. Ask me how it works!' : 'This showcases RBAC data masking. Ask me what gets hidden!'}`
+    ];
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  }
+
 
   showFeedbackModal() {
     alert("📊 Human-in-the-Loop Audit Log:\n- 4 Model inferences logged today.\n- 0 Hallucinations detected (100% Deterministic Grounding Verified).\n- Mean time to decision: 532ms.");
