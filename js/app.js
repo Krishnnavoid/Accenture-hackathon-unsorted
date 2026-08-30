@@ -144,23 +144,25 @@ class AppController {
     if (!btnSample || !btnIngest) return;
 
     btnSample.addEventListener('click', () => {
+      const apiKey = document.getElementById('api-key-input') ? document.getElementById('api-key-input').value.trim() : '';
       overlay.style.opacity = '0';
       setTimeout(() => {
         overlay.style.display = 'none';
         mainLayout.style.display = 'flex';
-        this.init();
+        this.init(null, apiKey);
       }, 300);
     });
 
     btnIngest.addEventListener('click', async () => {
       try {
         btnIngest.innerText = "Processing...";
+        const apiKey = document.getElementById('api-key-input') ? document.getElementById('api-key-input').value.trim() : '';
         const customData = await this.readUploadFiles();
         overlay.style.opacity = '0';
         setTimeout(() => {
           overlay.style.display = 'none';
           mainLayout.style.display = 'flex';
-          this.init(customData);
+          this.init(customData, apiKey);
         }, 300);
       } catch (err) {
         alert("Upload Error: " + err.message);
@@ -197,7 +199,7 @@ class AppController {
     return { contracts, pos, erp, crm };
   }
 
-  async init(customData = null) {
+  async init(customData = null, apiKey = '') {
     this.renderLoadingState();
 
     try {
@@ -223,7 +225,7 @@ class AppController {
 
       this.analyticsEngine = new DeterministicAnalyticsEngine(this.contracts, this.posData, this.erpData, this.crmData);
       this.recommenderEngine = new ActionRecommenderEngine();
-      this.synthesizerEngine = new LLMSynthesizerEngine();
+      this.synthesizerEngine = new LLMSynthesizerEngine(apiKey);
 
       this.bindEvents();
       this.setupChatbot();
