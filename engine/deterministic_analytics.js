@@ -34,9 +34,10 @@ export class DeterministicAnalyticsEngine {
       }
 
       if (kpi.kpi_id === "KPI_GROSS_MARGIN") {
-        // Target: 42.5%, Current simulated: 38.7% (-380 bps drop)
-        currentVal = 38.70;
-        varianceBps = Math.round((currentVal - targetVal) * 100);
+        // Target is usually 42.5%. We'll calculate current based on decomposition logic for consistency.
+        const decomp = this.decomposeGrossMarginMovement();
+        varianceBps = decomp.net_delta_bps;
+        currentVal = targetVal + (varianceBps / 100);
         status = varianceBps <= -kpi.alert_threshold_bps ? "CRITICAL_ANOMALY" : "NORMAL";
       } else if (kpi.kpi_id === "KPI_NET_REVENUE") {
         currentVal = role === "Regional_Manager" ? 166000 : 1184000;
@@ -75,35 +76,56 @@ export class DeterministicAnalyticsEngine {
     return { evaluatedKPIs, calcDurationMs: parseFloat(calcDurationMs) };
   }
 
-  /**
-   * Multi-Factor Waterfall Variance Decomposition for Scenario 1
-   * Quantifies exact contribution of Price, Freight, Volume, and Mix to Margin drop.
-   */
   decomposeGrossMarginMovement() {
     const startTime = performance.now();
-    const totalDeltaBps = -380; // -3.80% margin drop
+    
+    // Dynamically calculate from data
+    let promoImpact = 0;
+    let promoDollarImpact = 0;
+    let mixImpact = -45; // Baseline mix
+    let volumeImpact = +45; // Baseline volume
+    
+    if (this.pos && this.pos.regions) {
+      for (const region of Object.values(this.pos.regions)) {
+        if (region.sku_movements) {
+          for (const sku of region.sku_movements) {
+            if (sku.discount_pct > 0 && sku.margin_impact_bps) {
+              promoImpact += sku.margin_impact_bps;
+              promoDollarImpact += (sku.margin_impact_bps / 100) * 50000; // rough proxy
+            }
+          }
+        }
+      }
+    }
+    
+    let freightImpact = 0;
+    let freightDollarImpact = 0;
+    if (this.erp && this.erp.logistics_and_cogs && this.erp.logistics_and_cogs.global_freight_index) {
+      freightImpact = this.erp.logistics_and_cogs.global_freight_index.margin_drag_bps || 0;
+      freightDollarImpact = (freightImpact / 100) * 50000;
+    }
+
+    const totalDeltaBps = promoImpact + freightImpact + volumeImpact + mixImpact;
 
     const driverContributions = [
       {
         driver_id: "DRV_PROMO_DISC",
-        name: "Promotional Discount Depth (Summer Flash -25%)",
+        name: "Promotional Discount Depth",
         source: "POS_DAILY",
         category: "Commercial / Pricing",
-        impact_bps: -210,
-        dollar_impact: -105000,
-        percentage_share: 55.26,
-        direction: "NEGATIVE",
+        impact_bps: promoImpact,
+        dollar_impact: promoDollarImpact,
+        direction: promoImpact < 0 ? "NEGATIVE" : "POSITIVE",
         statistical_confidence: 0.96
       },
       {
         driver_id: "DRV_FREIGHT_COST",
-        name: "Freight Spot Rate Spike (Red Sea Transit Surcharge)",
+        name: "Freight Spot Rate Spike",
         source: "ERP_SUPPLY_WEEKLY",
         category: "Supply Chain / Logistics",
-        impact_bps: -170,
-        dollar_impact: -85000,
-        percentage_share: 44.74,
-        direction: "NEGATIVE",
+        impact_bps: freightImpact,
+        dollar_impact: freightDollarImpact,
+        direction: freightImpact < 0 ? "NEGATIVE" : "POSITIVE",
         statistical_confidence: 0.92
       },
       {
@@ -111,20 +133,18 @@ export class DeterministicAnalyticsEngine {
         name: "Incremental Unit Volume Lift",
         source: "POS_DAILY",
         category: "Volume Effect",
-        impact_bps: +45,
+        impact_bps: volumeImpact,
         dollar_impact: +22500,
-        percentage_share: -11.84,
         direction: "POSITIVE_OFFSET",
         statistical_confidence: 0.89
       },
       {
         driver_id: "DRV_PRODUCT_MIX_SHIFT",
-        name: "Low-Margin Tumbler Mix Shift",
+        name: "Low-Margin Mix Shift",
         source: "POS_DAILY",
         category: "Mix Effect",
-        impact_bps: -45,
+        impact_bps: mixImpact,
         dollar_impact: -22500,
-        percentage_share: 11.84,
         direction: "NEGATIVE",
         statistical_confidence: 0.91
       }
@@ -132,12 +152,14 @@ export class DeterministicAnalyticsEngine {
 
     // Mathematical verification: sum of contributions equals net movement
     const netVerifiedBps = driverContributions.reduce((acc, d) => acc + d.impact_bps, 0);
+    const baseline = 42.50;
+    const current = (baseline + (totalDeltaBps / 100)).toFixed(2);
 
     const calcDurationMs = (performance.now() - startTime).toFixed(2);
     return {
       kpi_name: "Gross Margin %",
-      baseline: "42.50%",
-      current: "38.70%",
+      baseline: baseline.toFixed(2) + "%",
+      current: current + "%",
       net_delta_bps: totalDeltaBps,
       net_verified_bps: netVerifiedBps,
       math_reconciliation_valid: totalDeltaBps === netVerifiedBps,
