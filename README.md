@@ -1,11 +1,11 @@
-# 🧠 BusinessIntelligence.ai
+# BusinessIntelligence.ai
 **The Autonomous KPI Intelligence-to-Action Engine**
 
 *Built for the Accenture Innovation Challenge 2026 - Round 2 (BusinessIntelligence.ai Track)*
 
 ---
 
-## 🎯 What is BusinessIntelligence.ai?
+## What is BusinessIntelligence.ai?
 
 **BusinessIntelligence.ai** is an AI-powered enterprise intelligence system that solves a fundamental problem in modern business: Dashboards only tell you *what* happened, not *why* it happened or *what to do about it*. 
 
@@ -15,7 +15,7 @@ When a critical metric drops, traditional business intelligence requires a team 
 
 ---
 
-## 🚨 The Three Problems We Solve
+## The Three Problems We Solve
 
 1. **Dashboard Paralysis:** Traditional BI tools (like Tableau or PowerBI) show a red chart but leave the user to figure out the "Why".
 2. **"Hallucinating" AI:** When you ask ChatGPT to analyze raw financial data, it often hallucinates numbers, losing the trust of finance teams immediately.
@@ -23,7 +23,7 @@ When a critical metric drops, traditional business intelligence requires a team 
 
 ---
 
-## 🏗️ Our Solution: The 5-Layer Hybrid Architecture
+## Our Solution: The 5-Layer Hybrid Architecture
 
 We solved the hallucination problem by creating a strict boundary between **Math** and **Storytelling**.
 
@@ -44,7 +44,7 @@ We solved the hallucination problem by creating a strict boundary between **Math
 
 ---
 
-## 📊 The 4 Interactive Scenarios
+## The 4 Interactive Scenarios
 
 The prototype features 4 clickable scenarios demonstrating the engine's capabilities:
 
@@ -62,7 +62,7 @@ The prototype features 4 clickable scenarios demonstrating the engine's capabili
 
 ---
 
-## 🚀 How to Run Locally
+## How to Run Locally
 
 Because this prototype utilizes JavaScript ES Modules (`import`/`export`) and local `fetch` calls to load the JSON data, **it cannot be run by simply double-clicking `index.html`**. Your browser will block it due to strict CORS/file protocol security.
 
@@ -81,14 +81,14 @@ If you have Node.js installed, you can use the `serve` package:
 npx serve .
 ```
 
-### 🧠 Using the Live LLM Feature
+### Using the Live LLM Feature
 1. On the initial "Ingest Enterprise Data" screen, you can provide an optional **Gemini API Key**.
 2. If provided, the engine will make live calls to `gemini-1.5-flash` to synthesize the narratives dynamically!
 3. If no key is provided, don't worry—the engine gracefully falls back to high-quality local mock responses so you can still experience the full flow of the demo.
 
 ---
 
-## 💼 Why This Wins
+## Why This Wins
 
 - **Zero Hallucinations:** By separating the math from the LLM, we guarantee 100% financial accuracy.
 - **Enterprise Ready:** Features like RBAC data masking, data freshness validation, and the "Abstention" safety protocol make this ready for real-world corporate environments.
